@@ -15,9 +15,9 @@ class DQNAgent:
         self.action_size = action_size
         self.memory = deque(maxlen=2000)  # Experience replay buffer
         self.gamma = 0.95  # Discount factor
-        self.epsilon = 1.0  # Exploration rate
+        self.epsilon = 0.7  # Exploration rate = 1.0
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.epsilon_decay = 0.995 # set a dynamic decay rate based on number of rounds
         self.learning_rate = 0.001
         self.model = self.build_model()
         self.target_model = self.build_model()
@@ -101,6 +101,16 @@ class DQNAgent:
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
+        
+    def encode_actions(actions):
+        """
+        Encode a list of actions to numerical values.
+
+        :param actions: List of actions
+        :return: Dictionary mapping actions to numerical values
+        """
+        action_to_num = {action: i for i, action in enumerate(actions)}
+        return action_to_num
 
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
