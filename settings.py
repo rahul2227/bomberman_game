@@ -6,8 +6,8 @@ from fallbacks import pygame
 # Game properties
 # board size (a smaller board may be useful at the beginning)
 COLS = 17
-ROWS = 17
-SCENARIOS = {
+ROWS = 17 # TODO : can also use a smaller board size
+SCENARIOS = { # TODO : Train the model using these scenarios 
     # modes useful for agent development
 	"empty": {
         "CRATE_DENSITY": 0, 

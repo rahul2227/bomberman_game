@@ -9,16 +9,20 @@ from tensorflow import keras
 import events as e
 from .callbacks import state_to_features
 
-# This is only an example!
+
 Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+                        ('state', 'action', 'next_state', 'reward', 'done'))
 
 # Hyper parameters -- DO modify
 TRANSITION_HISTORY_SIZE = 3  # keep only ... last transitions
 RECORD_ENEMY_TRANSITIONS = 1.0  # record enemy transitions with probability ...
 
+# Batch size
+MINI_BATCH_SIZE = 32
+
 # Events
 PLACEHOLDER_EVENT = "PLACEHOLDER"
+SURVIVED_ROUND = "SURVIVED_ROUND"
 
 
 def setup_training(self):
@@ -41,56 +45,40 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     # Idea: Add your own events to hand out rewards
     # if ...:
+    #     events.append(SURVIVED_ROUND)
     #     events.append(PLACEHOLDER_EVENT)
 
+    if len(self.transitions) > TRANSITION_HISTORY_SIZE:
+        self.transitions.pop(0)
+        self.model.remember_buffer_update()
+        
     # state_to_features is defined in callbacks.py
-    self.transitions.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events))) # What is this doing exactly and how to utilize this?
-    # transition array?
-    
-    #survival event
-    survival = [
-        e.KILLED_SELF,
-        e.GOT_KILLED,
-        e.SURVIVED_ROUND,
-    ]
-    done = False
-    for event in events:
-        if event in survival:
-            done = True
-    
-    self.model.remember(state_to_features(old_game_state), self_action, reward_from_events(self, events), state_to_features(new_game_state), done)
+    self.model.remember(transition = Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events), False))
+    # train
+    batch_size = MINI_BATCH_SIZE
+    if (MINI_BATCH_SIZE > len(self.transitions)): 
+        batch_size = len(self.transitions) 
+    self.model.replay(batch_size=batch_size) 
 
 
 def end_of_round(self, last_game_state: dict, last_action: str, events: List[str]):
-    """
-    Called at the end of each game or when the agent died to hand out final rewards.
-    This replaces game_events_occurred in this round.
-
-    This is similar to game_events_occurred. self.events will contain all events that
-    occurred during your agent's final step.
-
-    This is *one* of the places where you could update your agent.
-    This is also a good place to store an agent that you updated.
-
-    :param self: The same object that is passed to all of your callbacks.
-    """
+    
     self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
-    self.transitions.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
-    # TODO: Update the model on custom reward function
     
     # remembering the last rewards
-    self.model.remember(state_to_features(last_game_state), last_action, reward_from_events(self, events), None, True)    
+    self.model.remember(transition = Transition(state_to_features(last_game_state), last_action, state_to_features(None), reward_from_events(self, events), True))    
     
     # replay
-    self.model.replay(batch_size=100) # TODO: This mini batch_size can be smaller
+    batch_size = MINI_BATCH_SIZE
+    if (MINI_BATCH_SIZE > len(self.transitions)): 
+        batch_size = len(self.transitions) 
+    self.model.replay(batch_size=batch_size) 
     
     # target model train
     self.model.target_train()
 
     # Store the model
     with open("r-agent-saved-model.h5", "wb") as file:
-        # pickle.dump(self.model, file)
-        # keras.models.save_model(self.model.model, file)
         self.model.model.save('r-agent-saved-model.h5', save_format='h5')
 
 

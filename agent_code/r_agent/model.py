@@ -9,6 +9,8 @@ import numpy as np
 import random
 import math
 
+# from agent_code.r_agent.train import Transition
+
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
@@ -16,7 +18,8 @@ class DQNAgent:
     def __init__(self, state_size, action_size, n_rounds, logger):
         self.state_size = state_size
         self.action_size = action_size
-        self.memory = deque(maxlen=2000)  # Experience replay buffer
+        self.memory = deque(maxlen=2000)  # Experience replay buffer 
+        # TODO : Can be the same as the Transition size
         self.gamma = 0.95  # Discount factor
         self.epsilon = 1.0  # Exploration rate = 1.0
         self.epsilon_min = 0.05
@@ -112,8 +115,11 @@ class DQNAgent:
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])
 
-    def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+    def remember(self, transition): # TODO : Change the reward buffer according to the Transition
+        self.memory.append(transition)
+        
+    def remember_buffer_update(self):
+        self.memory.pop(0)
         
     def encode_actions(actions):
         """
