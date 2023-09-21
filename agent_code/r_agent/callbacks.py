@@ -3,6 +3,7 @@ import pickle
 from queue import PriorityQueue
 import random
 from random import shuffle
+import tensorflow as tf
 from tensorflow import keras
 
 import numpy as np
@@ -18,12 +19,17 @@ ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 ACTION_FEATURES_SIZE = 6
 
 
-def setup(self):
+def setup(self): 
     if self.train or not os.path.isfile("r-agent-saved-model.h5"):
         self.logger.info("Setting up model from scratch.")
         # weights = np.random.rand(len(ACTIONS))
         # self.model = weights / weights.sum()
-        self.model = DQNAgent(state_size=9, action_size=6) # TODO : change the state_size to accomodate the new feature
+        # print(self.n_rounds)
+        # Configure GPU if available
+        physical_devices = tf.config.list_physical_devices('GPU')
+        if len(physical_devices) > 0:
+            tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        self.model = DQNAgent(state_size=9, action_size=6, n_rounds= self.n_rounds, logger=self.logger) 
     else:
         self.logger.info("Loading model from saved state.")
         # with open("r-agent-saved-model.h5", "rb") as file:
@@ -63,38 +69,6 @@ def act(self, game_state: dict) -> str:
     self.logger.debug(f"value predicted by model {act_values[0]} and best action {best_action}")
     # return np.random.choice(ACTIONS, p=self.model)
     return best_action
-
-
-
-# def state_to_features(game_state: dict) -> np.array:
-#     """
-#     *This is not a required function, but an idea to structure your code.*
-
-#     Converts the game state to the input of your model, i.e.
-#     a feature vector.
-
-#     You can find out about the state of the game environment via game_state,
-#     which is a dictionary. Consult 'get_state_for_agent' in environment.py to see
-#     what it contains.
-
-#     :param game_state:  A dictionary describing the current game board.
-#     :return: np.array
-#     """
-    
-#     # This can be used to send the game state into the training of the model
-#     # TODO: Utilize this inside the game_events_occurred for training of the model
-    
-#     # This is the dict before the game begins and after it ends
-#     if game_state is None:
-#         return None
-
-#     # For example, you could construct several channels of equal shape, ...
-#     channels = []
-#     channels.append(game_state)
-#     # concatenate them as a feature tensor (they must have the same shape), ...
-#     stacked_channels = np.stack(channels)
-#     # and return them as a vector
-#     return stacked_channels.reshape(-1)
 
 
 def _get_neighboring_tiles(own_coord, radius) -> List[Tuple[int]]:
@@ -152,6 +126,7 @@ def moves_making_sense(game_state):
                 bomb_map[i, j] = min(bomb_map[i, j], t)
 
     # Check which moves make sense at all
+    # TODO : make so that we give reward if model takes action from valid moving directions
     directions = [(x, y), (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
     valid_tiles, valid_actions = [], []
     for d in directions:
@@ -167,9 +142,22 @@ def moves_making_sense(game_state):
     if (x, y + 1) in valid_tiles: valid_actions.append('DOWN')
     if (x, y) in valid_tiles: valid_actions.append('WAIT')
     # TODO : Encode valid action to index of Actions
-    valids = []
-    encoded_action_map = DQNAgent.encode_actions(ACTIONS)
-    valids = [encoded_action_map[action] for action in valid_actions]
+    # valids = []
+    # encoded_action_map = DQNAgent.encode_actions(ACTIONS)
+    
+    # valids = [encoded_action_map[action] for action in valid_actions]
+    
+    # Create a mapping from action names to integers
+    action_to_index = {action: index for index, action in enumerate(ACTIONS)}
+
+    # Initialize the valids array with zeros
+    valids = [0] * len(ACTIONS)
+
+    # Set 1 for valid actions
+    for action in valid_actions:
+        index = action_to_index.get(action, -1)  # Get the index for the action
+        if index != -1:
+            valids[index] = 1
     
     return valids
 
@@ -177,7 +165,7 @@ def moves_making_sense(game_state):
 def state_to_features(game_state) -> np.array:
     if game_state is None:
         print("First game state is None")
-        return np.zeros(2)
+        return np.zeros(9)
 
     own_position = game_state["self"][-1]
 
@@ -186,21 +174,25 @@ def state_to_features(game_state) -> np.array:
     bomb_present = check_bomb_presence(own_position, game_state, 3)
     agent_present = check_agent_presence(own_position, game_state, 3)
     action_features = moves_making_sense(game_state=game_state) 
+    # print(action_features)
+    
     
     # Ensure action_features has a constant size of ACTION_FEATURES_SIZE
-    if len(action_features) < ACTION_FEATURES_SIZE:
-        action_features.extend([-1] * (ACTION_FEATURES_SIZE - len(action_features)))
-    elif len(action_features) > ACTION_FEATURES_SIZE:
-        action_features = action_features[:ACTION_FEATURES_SIZE]
+    # if len(action_features) < ACTION_FEATURES_SIZE:
+    #     action_features.extend([-1] * (ACTION_FEATURES_SIZE - len(action_features)))
+    # elif len(action_features) > ACTION_FEATURES_SIZE:
+    #     action_features = action_features[:ACTION_FEATURES_SIZE]
     
     # Calculate features
     features = np.array([int(wall_counter > 2), int(bomb_present), int(agent_present)])
     
     # Concatenate the action_features
     features = np.concatenate((features, action_features))
+    # print(features)
     
     # Reshape to (1, 9)
     features = features.reshape((1, -1))
+    # print(features)
 
     
     return features

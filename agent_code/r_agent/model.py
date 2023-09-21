@@ -7,17 +7,22 @@ from sklearn.preprocessing import OneHotEncoder
 from collections import deque
 import numpy as np
 import random
+import math
+
+
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 class DQNAgent:
-    def __init__(self, state_size, action_size):
+    def __init__(self, state_size, action_size, n_rounds, logger):
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=2000)  # Experience replay buffer
         self.gamma = 0.95  # Discount factor
-        self.epsilon = 0.7  # Exploration rate = 1.0
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995 # set a dynamic decay rate based on number of rounds
+        self.epsilon = 1.0  # Exploration rate = 1.0
+        self.epsilon_min = 0.05
+        self.n_rounds = n_rounds
+        self.logger = logger
+        self.epsilon_decay = self.set_decay_rate() # 0.995 # set a dynamic decay rate based on number of rounds
         self.learning_rate = 0.001
         self.model = self.build_model()
         self.target_model = self.build_model()
@@ -25,6 +30,14 @@ class DQNAgent:
         self.target_train()
         # self.encoded_actions = self.encode_actions()
         
+        
+    def set_decay_rate(self) -> float:
+        # number of rounds for decay rate
+        decay_rate = -math.log((self.epsilon_min + 0.005) / self.epsilon) / self.n_rounds
+        self.logger.info(f" n_rounds: {self.n_rounds}")
+        self.logger.info(f"Determined exploration decay rate: {decay_rate}")
+        return decay_rate
+    
     def encode_actions():
         # Initialize the OneHotEncoder
         encoder = OneHotEncoder(sparse=False, categories=[ACTIONS])
@@ -90,7 +103,7 @@ class DQNAgent:
         model.add(Dense(128, input_dim=self.state_size, activation='relu'))
         model.add(Dense(64, activation='relu'))
         model.add(Dense(self.action_size, activation='softmax')) 
-        model.compile(loss=MeanSquaredError(), optimizer=Adam(learning_rate=self.learning_rate)) # TODO: lr to learning rate
+        model.compile(loss=MeanSquaredError(), optimizer=Adam(learning_rate=self.learning_rate))
         return model
 
     def act(self, state):

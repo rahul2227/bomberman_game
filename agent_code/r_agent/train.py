@@ -76,13 +76,13 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     """
     self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
     self.transitions.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
-    # TODO: Finally update the model on rewards/penalties from the past game to increase it's future performance
+    # TODO: Update the model on custom reward function
     
     # remembering the last rewards
     self.model.remember(state_to_features(last_game_state), last_action, reward_from_events(self, events), None, True)    
     
     # replay
-    self.model.replay(batch_size=100)
+    self.model.replay(batch_size=100) # TODO: This mini batch_size can be smaller
     
     # target model train
     self.model.target_train()
@@ -94,7 +94,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         self.model.model.save('r-agent-saved-model.h5', save_format='h5')
 
 
-def reward_from_events(self, events: List[str]) -> int:
+def reward_from_events(self, events: List[str]) -> int: # TODO : Write a helper function to plot reward mapping
     """
     *This is not a required function, but an idea to structure your code.*
 
@@ -102,16 +102,18 @@ def reward_from_events(self, events: List[str]) -> int:
     certain behavior.
     """
     game_rewards = {
-        e.COIN_COLLECTED: 14, 
-        e.KILLED_OPPONENT: 24,
-        e.KILLED_SELF: 0.5, 
-        e.GOT_KILLED: 1, 
-        e.SURVIVED_ROUND: 5, 
+        e.COIN_COLLECTED: 50, 
+        e.KILLED_OPPONENT: 200,
+        e.BOMB_DROPPED: 5,
+        e.KILLED_SELF: -10, 
+        e.GOT_KILLED: -50,
+        e.OPPONENT_ELIMINATED: 0.5, 
+        # e.SURVIVED_ROUND: 5, 
         e.INVALID_ACTION: -1,
-        e.MOVED_UP: 1.5,
-        e.MOVED_DOWN: 1.5,
-        e.MOVED_LEFT: 1.5,
-        e.MOVED_RIGHT: 1.5,
+        # e.MOVED_UP: 1.5,
+        # e.MOVED_DOWN: 1.5,
+        # e.MOVED_LEFT: 1.5,
+        # e.MOVED_RIGHT: 1.5,
         PLACEHOLDER_EVENT: -.1  # idea: the custom event is bad
     }
     reward_sum = 0

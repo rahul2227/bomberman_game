@@ -71,7 +71,6 @@ def coin_collector_rules(self, game_state):
 
     # Check which moves make sense at all
     directions = [(x, y), (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)] 
-    # TODO : Use this in state_to_feature function
     valid_tiles, valid_actions = [], []
     for d in directions:
         if ((arena[d] == 0) and
