@@ -1,33 +1,20 @@
 import os
-import pickle
-from queue import PriorityQueue
 import random
-from random import shuffle
 import tensorflow as tf
 from tensorflow import keras
 
 import numpy as np
-from agent_code.r_agent.exploration_rule_functions import coin_collector_rules, rb_act, rb_setup
-from agent_code.r_agent.model import build_model
-from agent_code.r_agent.parameter import CON_MODEL_STATE_SIZE
+from agent_code.r_agent.exploration_rule_functions import rb_act, rb_setup
+from agent_code.r_agent.model import build_model, decay_rate
+from agent_code.r_agent.parameter import ACTIONS, CON_MODEL_STATE_SIZE, EPSILON_MIN_VAL, INITIAL_EPSILON
 from agent_code.r_agent.state_feature import state_to_features
 import settings as s
-
-from agent_code.r_agent.model_old import DQNAgent, get_next_action
-
-
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
-
-
 
 
 # returns probabilites for an array of game_states
 def get_valid_probabilities_list(self, states, features):
     print(features[0].shape)
-    if self.train:
-        probabilities = self.model.model.predict(np.array(features))
-    else:
-        probabilities = self.model.predict(np.array(features))
+    probabilities = self.model.predict(np.array(features))
     for i in range(len(probabilities)):
         if min(probabilities[i]) < 0:
             probabilities[i] += abs(min(probabilities[i]))
@@ -85,10 +72,17 @@ def setup(self):
         # self.model = DQNAgent(state_size=DENSE_MODEL_STATE_SIZE, action_size=6, n_rounds= self.n_rounds, logger=self.logger)
         # self.model = DQNAgent(state_size= CON_MODEL_STATE_SIZE, action_size=6, n_rounds= self.n_rounds, logger=self.logger)
         # There are 2 models in this DQNAgent class and we need to use only the target_model with respect to the model. 
+        self.epsilon = INITIAL_EPSILON
+        self.epsilon_min = EPSILON_MIN_VAL
+        self.epsilon_decay = decay_rate(self)
         self.model = build_model()
+        self.target_model = build_model()
+        self.target_model.set_weights(self.model.get_weights())
     else:
         self.logger.info("Loading model from saved state.")
-        self.model = keras.models.load_model("r-agent-saved-target-model.h5")
+        self.model = keras.models.load_model("r-agent-saved-model.h5")
+        self.target_model = build_model()
+        self.target_model.set_weights(self.model.get_weights())
 
 
 # TODO : Implement the query for taking only valid probabilities from the model instead of argmax
@@ -103,32 +97,16 @@ def act(self, game_state: dict) -> str:
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
+    choice=None
     # todo Exploration vs exploitation
-    if self.train: 
-        random_prob = self.model.epsilon
-        self.logger.debug(f'random probab = {self.model.epsilon}')
-    if self.train and random.random() < random_prob:
-        # coin_collector_rules(self, game_state)
+    if self.train and random.random() < self.epsilon:
         choice = rb_act(self, game_state)
         
-    # Current game state
-    # state = state_to_features(game_state=game_state)
-    # self.logger.info(f"Shape of the state {state}")
-
     self.logger.debug("Querying model for action.")
-    # encoded_action = self.model.action_to_encoded(state)
-    # if self.train:
-    #     act_values = self.model.model.predict(state) 
-    # else:
-    #     act_values = self.model.predict(state)
-    # best_action_index = np.argmax(act_values[0]) # TODO : Valid probabilities for actions to be taken
-    # best_action = ACTIONS[best_action_index]
-    # self.logger.debug(f"value predicted by model {act_values[0]} and best action {best_action}")
-    # return np.random.choice(ACTIONS, p=self.model)
     
     probabilities, choice = get_next_action(self, game_state)
-    print(probabilities.shape)
-    print(choice)
+    # print(probabilities.shape)
+    # print(choice)
     self.logger.debug(probabilities)
     self.logger.debug(f"Chose action: {choice}")
     return choice

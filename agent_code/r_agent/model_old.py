@@ -21,18 +21,18 @@ from agent_code.r_agent.state_feature import state_to_features
 
 class DQNAgent:
     def __init__(self, state_size, action_size, n_rounds, logger):
-        self.state_size = state_size
-        self.action_size = action_size
+        # self.state_size = state_size
+        # self.action_size = action_size
         self.memory = []
         self.gamma = 0.95  # Discount factor
-        self.epsilon = 1.0  # Exploration rate = 1.0
-        self.epsilon_min = 0.05
-        self.n_rounds = n_rounds
+        # self.epsilon = 1.0  # Exploration rate = 1.0
+        # self.epsilon_min = 0.05
+        # self.n_rounds = n_rounds
         self.logger = logger
-        self.epsilon_decay = self.set_decay_rate() # 0.995 # set a dynamic decay rate based on number of rounds
-        self.learning_rate = 0.001
-        self.model = self.build_model()
-        self.target_model = self.build_model()
+        # self.epsilon_decay = self.set_decay_rate() # 0.995 # set a dynamic decay rate based on number of rounds
+        # self.learning_rate = 0.001
+        # self.model = self.build_model()
+        # self.target_model = self.build_model()
         # self.update_target_model()
         self.target_train()
         

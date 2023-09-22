@@ -1,7 +1,6 @@
 from collections import deque
 from random import shuffle
 import numpy as np
-from agent_code.r_agent.model_old import DQNAgent
 import settings as s
 
 
