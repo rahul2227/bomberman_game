@@ -83,19 +83,20 @@ def reward_from_events(self, events: List[str]) -> int: # TODO : Write a helper 
     certain behavior.
     """
     game_rewards = {
-        e.COIN_COLLECTED: 50, 
-        e.KILLED_OPPONENT: 200,
-        e.BOMB_DROPPED: 5,
-        e.KILLED_SELF: -10, 
-        e.GOT_KILLED: -50,
-        e.OPPONENT_ELIMINATED: 0.5, 
-        # e.SURVIVED_ROUND: 5, 
+        e.COIN_COLLECTED: 5, 
+        # e.KILLED_OPPONENT: 200,
+        # e.BOMB_DROPPED: 1,
+        e.KILLED_SELF: -100, 
+        # e.GOT_KILLED: -50,
+        # e.OPPONENT_ELIMINATED: 0.5, 
+        # e.SURVIVED_ROUND: 5,
+        e.WAITED: -1, 
         e.INVALID_ACTION: -1,
-        # e.MOVED_UP: 1.5,
-        # e.MOVED_DOWN: 1.5,
-        # e.MOVED_LEFT: 1.5,
-        # e.MOVED_RIGHT: 1.5,
-        PLACEHOLDER_EVENT: -.1  # idea: the custom event is bad
+        # e.MOVED_UP: 2,
+        # e.MOVED_DOWN: 2,
+        # e.MOVED_LEFT: 2,
+        # e.MOVED_RIGHT: 2,
+        # PLACEHOLDER_EVENT: -.1  # idea: the custom event is bad
     }
     reward_sum = 0
     for event in events:
