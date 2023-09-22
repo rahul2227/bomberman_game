@@ -339,7 +339,7 @@ class BombeRLeWorld(GenericWorld):
         # Add specified agents and start their subprocesses
         self.agents = []
         for agent_dir, train, n_rounds in agents:
-            if list([d for d, t, n in agents]).count(agent_dir) > 1: #TODO : Why greyed?
+            if list([d for d, t, n in agents]).count(agent_dir) > 1: 
                 name = agent_dir + '_' + str(list([a.code_name for a in self.agents]).count(agent_dir))
             else:
                 name = agent_dir

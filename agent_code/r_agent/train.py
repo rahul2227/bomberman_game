@@ -10,9 +10,6 @@ import events as e
 from .callbacks import state_to_features
 
 
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward', 'done'))
-
 # Hyper parameters -- DO modify
 TRANSITION_HISTORY_SIZE = 3  # keep only ... last transitions
 RECORD_ENEMY_TRANSITIONS = 1.0  # record enemy transitions with probability ...
@@ -36,7 +33,7 @@ def setup_training(self):
     #Here I need to send the shape 
     # self.model = DQNAgent(state_size=9, action_size=6) # What can be the state_size?
     # Can it be obtained from the game_environment?
-    self.transitions = deque(maxlen=TRANSITION_HISTORY_SIZE)
+    # self.transitions = deque(maxlen=TRANSITION_HISTORY_SIZE)
 
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -48,17 +45,15 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     #     events.append(SURVIVED_ROUND)
     #     events.append(PLACEHOLDER_EVENT)
 
-    if len(self.transitions) > TRANSITION_HISTORY_SIZE:
-        self.transitions.pop(0)
-        self.model.remember_buffer_update()
+    # if len(self.model.memory) > TRANSITION_HISTORY_SIZE:
+        # self.transitions.pop(0)
+        # self.model.remember_buffer_update()
         
     # state_to_features is defined in callbacks.py
-    self.model.remember(transition = Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events), False))
+    self.model.remember(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events), False)
     # train
-    batch_size = MINI_BATCH_SIZE
-    if (MINI_BATCH_SIZE > len(self.transitions)): 
-        batch_size = len(self.transitions) 
-    self.model.replay(batch_size=batch_size) 
+    if old_game_state is not None:
+        self.model.replay()  
 
 
 def end_of_round(self, last_game_state: dict, last_action: str, events: List[str]):
@@ -66,13 +61,10 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
     
     # remembering the last rewards
-    self.model.remember(transition = Transition(state_to_features(last_game_state), last_action, state_to_features(None), reward_from_events(self, events), True))    
+    self.model.remember(state_to_features(last_game_state), last_action, state_to_features(None), reward_from_events(self, events), True)
     
     # replay
-    batch_size = MINI_BATCH_SIZE
-    if (MINI_BATCH_SIZE > len(self.transitions)): 
-        batch_size = len(self.transitions) 
-    self.model.replay(batch_size=batch_size) 
+    self.model.replay() 
     
     # target model train
     self.model.target_train()
@@ -80,6 +72,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     # Store the model
     with open("r-agent-saved-model.h5", "wb") as file:
         self.model.model.save('r-agent-saved-model.h5', save_format='h5')
+        self.model.target_model.save('r-agent-saved-target-model.h5', save_format='h5')
 
 
 def reward_from_events(self, events: List[str]) -> int: # TODO : Write a helper function to plot reward mapping

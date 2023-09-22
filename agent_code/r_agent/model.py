@@ -9,17 +9,19 @@ import numpy as np
 import random
 import math
 
-# from agent_code.r_agent.train import Transition
 
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
+
+# Batch size
+MINI_BATCH_SIZE = 32
+
 
 class DQNAgent:
     def __init__(self, state_size, action_size, n_rounds, logger):
         self.state_size = state_size
         self.action_size = action_size
-        self.memory = deque(maxlen=2000)  # Experience replay buffer 
-        # TODO : Can be the same as the Transition size
+        self.memory = []
         self.gamma = 0.95  # Discount factor
         self.epsilon = 1.0  # Exploration rate = 1.0
         self.epsilon_min = 0.05
@@ -115,8 +117,8 @@ class DQNAgent:
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])
 
-    def remember(self, transition): # TODO : Change the reward buffer according to the Transition
-        self.memory.append(transition)
+    def remember(self, state, action, reward, next_state, done): 
+        self.memory.append((state, action, reward, next_state, done))
         
     def remember_buffer_update(self):
         self.memory.pop(0)
@@ -131,20 +133,32 @@ class DQNAgent:
         action_to_num = {action: i for i, action in enumerate(actions)}
         return action_to_num
 
-    def replay(self, batch_size):
-        minibatch = random.sample(self.memory, batch_size)
+    def replay(self):
+        minibatch = MINI_BATCH_SIZE
+        if MINI_BATCH_SIZE > len(self.memory):
+            minibatch = len(self.memory)
+        # print(self.memory)
+        # minibatch = np.random.choice(self.memory, batch_size, replace=True)
+        # minibatch = np.random.choice(self.memory, MINI_BATCH_SIZE, replace=True)
+        # minibatch = random.sample(self.memory, minibatch)
+        
+        # Randomly sample from self.memory with replacement
+        sampled_indices = np.random.choice(len(self.memory), minibatch, replace=True)
+        minibatch = [self.memory[i] for i in sampled_indices]
+        # print(minibatch[0])
+        # state, action, reward, next_state, done = minibatch[0]
+        # print(next_state)
         action_to_index = {action: index for index, action in enumerate(ACTIONS)}
-        for state, action, reward, next_state, done in minibatch:
+        for state, action, next_state, reward, done in minibatch:
             target = reward
             # encoded_action = self.action_to_encoded(action)
             if not done:
-                target = reward + self.gamma * np.amax(self.target_model.predict(next_state)[0]) # Better Q-learning update rule or Q-table usage?
-                # Approximate Q-Learning?
+                target = reward + self.gamma * np.amax(self.target_model.predict(next_state)[0]) 
             target_f = self.model.predict(state)
             
             action_index = action_to_index[action]
             target_f[0][action_index] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
+            self.model.fit(state, target_f, epochs=10, verbose=0)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 

@@ -20,7 +20,7 @@ ACTION_FEATURES_SIZE = 6
 
 
 def setup(self): 
-    if self.train or not os.path.isfile("r-agent-saved-model.h5"):
+    if self.train or not os.path.isfile("r-agent-saved-target-model.h5"):
         self.logger.info("Setting up model from scratch.")
         # weights = np.random.rand(len(ACTIONS))
         # self.model = weights / weights.sum()
@@ -29,13 +29,16 @@ def setup(self):
         physical_devices = tf.config.list_physical_devices('GPU')
         if len(physical_devices) > 0:
             tf.config.experimental.set_memory_growth(physical_devices[0], True)
-        self.model = DQNAgent(state_size=9, action_size=6, n_rounds= self.n_rounds, logger=self.logger) 
+        self.model = DQNAgent(state_size=9, action_size=6, n_rounds= self.n_rounds, logger=self.logger)
+        # There are 2 models in this DQNAgent class and we need to use only the target_model with respect to the model. 
     else:
         self.logger.info("Loading model from saved state.")
         # with open("r-agent-saved-model.h5", "rb") as file:
             # self.model = pickle.load(file)
-        self.model = keras.models.load_model("r-agent-saved-model.h5")
+        self.model = keras.models.load_model("r-agent-saved-target-model.h5")
 
+
+# TODO : Implement the query for taking only valid probabilities from the model instead of argmax
 
 
 def act(self, game_state: dict) -> str:
@@ -64,7 +67,7 @@ def act(self, game_state: dict) -> str:
         act_values = self.model.model.predict(state) 
     else:
         act_values = self.model.predict(state)
-    best_action_index = np.argmax(act_values[0])
+    best_action_index = np.argmax(act_values[0]) # TODO : Valid probabilities for actions to be taken
     best_action = ACTIONS[best_action_index]
     self.logger.debug(f"value predicted by model {act_values[0]} and best action {best_action}")
     # return np.random.choice(ACTIONS, p=self.model)
@@ -141,11 +144,6 @@ def moves_making_sense(game_state):
     if (x, y - 1) in valid_tiles: valid_actions.append('UP')
     if (x, y + 1) in valid_tiles: valid_actions.append('DOWN')
     if (x, y) in valid_tiles: valid_actions.append('WAIT')
-    # TODO : Encode valid action to index of Actions
-    # valids = []
-    # encoded_action_map = DQNAgent.encode_actions(ACTIONS)
-    
-    # valids = [encoded_action_map[action] for action in valid_actions]
     
     # Create a mapping from action names to integers
     action_to_index = {action: index for index, action in enumerate(ACTIONS)}
