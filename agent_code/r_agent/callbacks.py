@@ -8,17 +8,16 @@ from tensorflow import keras
 
 import numpy as np
 from agent_code.r_agent.exploration_rule_functions import coin_collector_rules, rb_act, rb_setup
+from agent_code.r_agent.model import build_model
+from agent_code.r_agent.parameter import CON_MODEL_STATE_SIZE
 from agent_code.r_agent.state_feature import state_to_features
 import settings as s
 
-from agent_code.r_agent.model import DQNAgent, get_next_action
+from agent_code.r_agent.model_old import DQNAgent, get_next_action
 
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
-# Define a constant size for action_features
-ACTION_FEATURES_SIZE = 6
-DENSE_MODEL_STATE_SIZE = 9
-CON_MODEL_STATE_SIZE = (5, 17, 17)
+
 
 
 
@@ -84,8 +83,9 @@ def setup(self):
         if len(physical_devices) > 0:
             tf.config.experimental.set_memory_growth(physical_devices[0], True)
         # self.model = DQNAgent(state_size=DENSE_MODEL_STATE_SIZE, action_size=6, n_rounds= self.n_rounds, logger=self.logger)
-        self.model = DQNAgent(state_size= CON_MODEL_STATE_SIZE, action_size=6, n_rounds= self.n_rounds, logger=self.logger)
+        # self.model = DQNAgent(state_size= CON_MODEL_STATE_SIZE, action_size=6, n_rounds= self.n_rounds, logger=self.logger)
         # There are 2 models in this DQNAgent class and we need to use only the target_model with respect to the model. 
+        self.model = build_model()
     else:
         self.logger.info("Loading model from saved state.")
         self.model = keras.models.load_model("r-agent-saved-target-model.h5")

@@ -2,7 +2,7 @@ from collections import namedtuple, deque
 
 import pickle
 from typing import List
-from agent_code.r_agent.model import DQNAgent
+from agent_code.r_agent.model_old import DQNAgent
 import tensorflow as tf
 from tensorflow import keras
 
@@ -10,16 +10,7 @@ import events as e
 from .callbacks import state_to_features
 
 
-# Hyper parameters -- DO modify
-TRANSITION_HISTORY_SIZE = 3  # keep only ... last transitions
-RECORD_ENEMY_TRANSITIONS = 1.0  # record enemy transitions with probability ...
 
-# Batch size
-MINI_BATCH_SIZE = 32
-
-# Events
-PLACEHOLDER_EVENT = "PLACEHOLDER"
-SURVIVED_ROUND = "SURVIVED_ROUND"
 
 
 def setup_training(self):
