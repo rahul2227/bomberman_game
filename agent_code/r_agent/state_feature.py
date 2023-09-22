@@ -59,7 +59,6 @@ def check_agent_presence(own_position, game_state, radius):
 #                 bomb_map[i, j] = min(bomb_map[i, j], t)
 
 #     # Check which moves make sense at all
-#     # TODO : make so that we give reward if model takes action from valid moving directions
 #     directions = [(x, y), (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
 #     valid_tiles, valid_actions = [], []
 #     for d in directions:

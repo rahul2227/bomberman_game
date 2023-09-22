@@ -24,7 +24,7 @@ def setup_training(self):
     """    
     self.memory = []
     self.gamma = 0.95
-    # TODO : Adding a visited coordinate channel
+    self.visited_coords = []
 
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -36,7 +36,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     # train and buffer
     if old_game_state is not None:
         # state_to_features is defined in callbacks.py
-        self.memory.append(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events), False)
+        self.memory.append((state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events), False))
         # train_model(self)  
 
 
@@ -59,7 +59,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
     
     # remembering the last rewards
-    self.memory.append(state_to_features(last_game_state), last_action, state_to_features(None), reward_from_events(self, events), True)
+    self.memory.append((state_to_features(last_game_state), last_action, state_to_features(last_game_state), reward_from_events(self, events), True))
     
     # replay
     for i in range(10):
@@ -121,17 +121,19 @@ def train_model(self):
         print(state.shape)
         print(next_state.shape)
         print(self.target_model.summary())
+        print(next_state)
         target = reward
         if not done:
             # target = reward + self.gamma * np.amax(self.target_model.predict(next_state)[0])
-            next_state = np.expand_dims(next_state, axis=0)  # Add a batch dimension
-            target = reward + self.gamma * np.amax(self.target_model.predict(next_state), axis=1) 
+            # next_state = np.expand_dims(next_state, axis=0)  # Add a batch dimension
+            # np.array(next_state)
+            target = reward + self.gamma * np.amax(self.target_model.predict(next_state)) # TODO : Why the hell the shape is (None, 17, 17) here???????????
         # target_f = self.model.predict(state)
         target_f = get_valid_probabilities_list(self, state, next_state)
         
         action_index = action_to_index[action]
         target_f[0][action_index] = target
-        self.model.fit(state, target_f, epochs=10, verbose=0) # epochs = 0 maybe
+        self.model.fit(state, target_f, verbose=0) # epochs = 0 maybe
     if self.epsilon > self.epsilon_min:
         self.epsilon *= self.epsilon_decay
         

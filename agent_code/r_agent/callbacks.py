@@ -85,8 +85,6 @@ def setup(self):
         self.target_model.set_weights(self.model.get_weights())
 
 
-# TODO : Implement the query for taking only valid probabilities from the model instead of argmax
-
 
 def act(self, game_state: dict) -> str:
     """
